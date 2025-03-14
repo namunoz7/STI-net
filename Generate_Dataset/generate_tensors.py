@@ -20,16 +20,16 @@ NUM_ELLIPSOIDS_I = 3
 NUM_ELLIPSOIDS_A = 3
 MAT_SIZE = np.array([72, 72, 72])
 N_ORIENTATIONS = 6
-START = 0
-NUM_FIGURES = 74000
+START = 13536
+NUM_FIGURES = 40000
 RESOLUTION = np.array([0.1, 0.1, 0.1])
 FOV = MAT_SIZE * RESOLUTION
 MAT_SIZE = tuple(MAT_SIZE)
 WINDOW = 64
 DELTA_FOV = ((np.array(MAT_SIZE) - WINDOW)//2)
-RESULTS_FOLDER = '../../../../researchers/cristian-tejos/datasets/STI_dataset/Chi/'
+# RESULTS_FOLDER = '../../../../researchers/cristian-tejos/datasets/STI_dataset/Chi/'
 # RESULTS_FOLDER = '../../../Imagenes/Dataset/Chi/'
-# RESULTS_FOLDER = '../../Dataset/Chi/'
+RESULTS_FOLDER = '../../Dataset/Chi/'
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 eps = sys.float_info.epsilon
 
@@ -156,22 +156,11 @@ def bite_borders(tensor, border_mask):
     return tensor
 
 
-def read_h5_file(filename):
-    """
-    Reads the h5 file
-    :param filename:
-    :return:
-    """
-    with h5py.File(filename, 'r') as hf:
-        return torch.tensor(np.array(hf.get('A')))
-
-
 class Cylinders:
     global NUM_CYLINDERS
     global N_ORIENTATIONS
 
     def __init__(self, mat_size):
-        self.vec_theta, self.vec_psi = rp.angles_cylinders(N_ORIENTATIONS)
         self.chi = torch.zeros(mat_size[0], mat_size[1], mat_size[2], 6, dtype=torch.float64, device=DEVICE)
         # Iterate to generate more figures
         chi_cylinders, n_figures = gen_cylinders_v2(NUM_CYLINDERS)

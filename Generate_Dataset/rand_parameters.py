@@ -105,33 +105,61 @@ def spheres_border(num_figures, window):
     return mask_sphere
 
 
-def angles_cylinders(num_rotations, max_angle):
+def angles_cylinders(num_rotations, max_angle=40, set_num_rotations=6):
+    """
+    Rotation angles that are used to rotate the object in the scanner. It only generates 6 angles
+    :param set_num_rotations: Number of different orientations available in the dataset
+    :param max_angle: Maximum angle of tilting orientation with respect to the main magnetic field
+    :param num_rotations: Minimum number of orientations to get a susceptibility tensor
+    """
+
+    min_rand = -10.0
+    max_rand = 10.0
+    idx_shuffled = torch.randperm(set_num_rotations)
+
+    # Tilt angle over LR axis
+    vec_theta = torch.tensor([0.0, 0.0, max_angle/2, max_angle/2, max_angle,
+                              -max_angle/2, -max_angle/2, -max_angle/2,
+                              -max_angle/2, -max_angle, max_angle/2], dtype=torch.float64)
+    vec_theta = vec_theta[idx_shuffled[:num_rotations-1]]
+    tmp_rand = (max_rand - min_rand) * torch.rand((num_rotations-1,), dtype=torch.float64) + min_rand
+    vec_theta += tmp_rand
+    vec_theta = torch.cat([torch.tensor((0.0,)), vec_theta], dim=0)
+    vec_theta = vec_theta.reshape(1, num_rotations)
+    vec_theta = torch.deg2rad(vec_theta)
+
+    # Rotation angle over AP axis
+    vec_psi = torch.tensor([-max_angle, max_angle, -max_angle/2, max_angle/2, 0.0,
+                            -max_angle/2, max_angle/2, -max_angle,
+                            max_angle, 0.0, 0.0], dtype=torch.float64)
+    vec_psi = vec_psi[idx_shuffled[:num_rotations-1]]
+    tmp_rand = (max_rand - min_rand) * torch.rand((num_rotations-1,), dtype=torch.float64) + min_rand
+    vec_psi += tmp_rand
+    vec_psi = torch.cat([torch.tensor((0.0,)), vec_psi], dim=0)
+    vec_psi = vec_psi.reshape(1, num_rotations)
+    vec_psi = torch.deg2rad(vec_psi)
+
+    return vec_theta, vec_psi
+
+
+def angles_cylinders_v2(num_rotations, max_angle):
     """
     Rotation angles that are used to rotate the object in the scanner. It only generates 6 angles
     :param max_angle: Maximum angle of tilting orientation with respect to the
     :param num_rotations:
     """
-    # Parameters of the angles to model the cylinders
-    # theta_min = 10.0
-    # theta2 = 40.0
-    # psi2 = 40.0
-
-    min_rand = -5.0
-    max_rand = 5.0
-    # max_angle = 25.0
+    tmp = max_angle / 2
 
     # Tilt angle of main field
-    tmp = (max_rand - min_rand) * torch.rand((1, num_rotations), dtype=torch.float64) + min_rand
-    vec_theta = torch.tensor([0.0, 0.0, 0.0, max_angle/2, max_angle/2, max_angle], dtype=torch.float64)
+    vec_theta = tmp * torch.rand((num_rotations-1,), dtype=torch.float64) - tmp
+    vec_theta = torch.cat([torch.tensor((0.0,)), vec_theta], dim=0)  # .reshape(1, num_rotations)
     vec_theta = vec_theta.reshape(1, num_rotations)
-    vec_theta += tmp
     vec_theta = torch.deg2rad(vec_theta)
 
     # Rotation angle with the z axis
-    tmp = (max_rand - min_rand) * torch.rand((1, num_rotations), dtype=torch.float64) + min_rand
-    vec_psi = torch.tensor([0.0, -max_angle, max_angle, -max_angle/2, max_angle/2, 0.0], dtype=torch.float64)
+    vec_psi = tmp * torch.rand((num_rotations-1,), dtype=torch.float64) - tmp
+    vec_psi = torch.cat([torch.tensor((0.0,)), vec_psi], dim=0)
     vec_psi = vec_psi.reshape(1, num_rotations)
-    vec_psi += tmp
     vec_psi = torch.deg2rad(vec_psi)
 
     return vec_theta, vec_psi

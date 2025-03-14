@@ -69,11 +69,12 @@ def projection_variables(vec_theta, vec_psi, n_orientations):
     :param vec_psi: vector containing the angle of rotation of the x-y plane.
     :param n_orientations:
     :return: A: matrix containing each one of the projection angles.
+    :return: direction_field: vector containing the orientation of the simulates scanning parameters
     """
     import K_space_torch as kSpace
     from generate_tensors import FOV
 
-    direction_field = kSpace.get_direction_field(vec_theta, vec_psi, n_orientations)
+    direction_field, direction_field_2 = kSpace.get_direction_field(vec_theta, vec_psi, n_orientations)
     k, kxx, kyy, kzz = kSpace.gen_k_space(FOV, n_orientations)
 
     k2 = (kxx * kxx) + (kyy * kyy) + (kzz * kzz)
@@ -93,7 +94,7 @@ def projection_variables(vec_theta, vec_psi, n_orientations):
            ((kt_h / k2) * (kzz * direction_field[:, 1] + kyy * direction_field[:, 2]))
 
     matrix_projection = torch.stack([a_11, a_12, a_13, a_22, a_23, a_33], dim=-1)
-    return matrix_projection
+    return matrix_projection, direction_field_2
 
 
 def get_cylinder_phase(num_cylinders, rho, vec_theta, vec_psi, vec_radius, delta_x):
@@ -219,7 +220,8 @@ def tilt_scan_image(num_figures, mask, mat_rot, is_cylinder):
     from generate_tensors import MAT_SIZE
 
     chi_i = get_susceptibility_values(num_figures, is_cylinder)
-    chi_tensor = torch.matmul(torch.matmul(mat_rot, chi_i), mat_rot.transpose(1, 2)).\
+    eig_rot = torch.stack([mat_rot[:, :, 2], mat_rot[:, :, 1], mat_rot[:, :, 0]], dim=2)
+    chi_tensor = torch.matmul(torch.matmul(eig_rot, chi_i), eig_rot.transpose(1, 2)).\
         reshape(num_figures, 9).transpose(0, 1)
     chi_figures = torch.matmul(chi_tensor, mask).squeeze().reshape(MAT_SIZE[0], MAT_SIZE[1], MAT_SIZE[2], 3, 3)
     chi = torch.zeros(MAT_SIZE[0], MAT_SIZE[1], MAT_SIZE[2], 6, dtype=torch.float64, device=DEVICE)

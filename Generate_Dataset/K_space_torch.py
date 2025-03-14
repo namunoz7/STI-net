@@ -7,19 +7,28 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 def get_direction_field(vec_theta, vec_psi, n_orientations):
     """
-    Gets the direction field vector of the multiple orientations, made by the cylinders.
-    :param vec_theta: tilt angle (inclination angle with respect to the z axis)
-    :param vec_psi: azimuth angle (rotation angle made in the x-y plane)
+    Gets the direction field vector of the multiple orientations, made by the cylinders. All the angles are in radians
+    :param vec_theta: Rotation angle in the left-right axis
+    :param vec_psi: Rotation angle in the antero-posterior axis
     :param n_orientations:
     :return:
     """
-    direction_field = torch.zeros(n_orientations, 3, dtype=torch.float64, device=DEVICE)
-    direction_field[:, 0] = torch.sin(vec_theta) * torch.cos(vec_psi)  # Hx
-    direction_field[:, 1] = -torch.sin(vec_psi)  # Hz
-    direction_field[:, 2] = torch.cos(vec_theta) * torch.cos(vec_psi)  # Hy
-    direction_field = direction_field.unsqueeze(-1)
+    direction_field_1 = torch.zeros(n_orientations, 3, dtype=torch.float64)
+    direction_field_2 = torch.zeros(n_orientations, 3, dtype=torch.float64)
 
-    return direction_field
+    # Orientation of the main magnetic field
+    direction_field_1[:, 0] = torch.sin(vec_theta)  # Hx
+    direction_field_1[:, 1] = -torch.sin(vec_psi) * torch.cos(vec_theta)  # Hy
+    direction_field_1[:, 2] = torch.cos(vec_psi) * torch.cos(vec_theta)  # Hz
+    direction_field_1 = direction_field_1.unsqueeze(-1)
+
+    # Opposed direction
+    direction_field_2[:, 0] = -torch.sin(vec_theta) * torch.cos(vec_psi)  # Hx
+    direction_field_2[:, 1] = torch.sin(vec_psi)  # Hy
+    direction_field_2[:, 2] = torch.cos(vec_psi) * torch.cos(vec_theta)  # Hz
+    direction_field_2 = direction_field_2.unsqueeze(-1)
+
+    return direction_field_1, direction_field_2
 
 
 def gen_k_space(fov, n_orientations):
