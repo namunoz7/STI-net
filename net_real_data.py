@@ -152,7 +152,7 @@ def main():
     check_root(SIMULATED_FOLDER)
     check_root(RESULTS_FOLDER)
     # phi = alpha_rc1 * phi[:, :, :, [0, 8, 1, 4, 5, 3]]
-    # phi = alpha_rc1 * phi[:, :, :, directions_used]
+    # phi = alpha_rc1 * phi[:, :, :, DIRECTIONS_USED]
     # save_img(nii, torch.squeeze(phi)[:, :, 48:-48, :], os.path.join(RESULTS_FOLDER, 'phi_2.nii.gz'))
 
     print('Loading STInet model')
