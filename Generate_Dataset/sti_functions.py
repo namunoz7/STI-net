@@ -1,5 +1,6 @@
 import torch
 import sys
+from generate_tensors import MAT_SIZE
 eps = sys.float_info.epsilon
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -47,8 +48,8 @@ def get_susceptibility_values(n_figures, is_cylinder=False):
         chi = torch.diag_embed(chi.values)
     else:
         # Susceptibility inside the spheres
-        min_uniform = 0
-        max_uniform = 0.08
+        min_uniform = -0.02
+        max_uniform = 0.06
         chi_1 = (max_uniform - min_uniform) * torch.rand(size=(n_figures,),
                                                          dtype=torch.float64, device=DEVICE) + min_uniform
         chi_2 = (max_uniform - min_uniform) * torch.rand(size=(n_figures,),
@@ -59,6 +60,49 @@ def get_susceptibility_values(n_figures, is_cylinder=False):
         chi = torch.diag_embed(chi.values)
 
     return chi
+
+
+def gen_k_space(fov, n_orientations):
+    """
+    Defines the K space
+    :param fov:
+    :param n_orientations:
+    :return:
+    """
+    kx = torch.arange(1, MAT_SIZE[0] + 1, dtype=torch.float64, device=DEVICE)
+    ky = torch.arange(1, MAT_SIZE[1] + 1, dtype=torch.float64, device=DEVICE)
+    kz = torch.arange(1, MAT_SIZE[2] + 1, dtype=torch.float64, device=DEVICE)
+
+    center_x = MAT_SIZE[0] // 2 + 1
+    center_y = MAT_SIZE[1] // 2 + 1
+    center_z = MAT_SIZE[2] // 2 + 1
+    kx = kx - center_x
+    ky = ky - center_y
+    kz = kz - center_z
+
+    delta_kx = 1 / fov[0]
+    delta_ky = 1 / fov[1]
+    delta_kz = 1 / fov[2]
+
+    #  Generation of k space
+
+    kx = kx * delta_kx
+    ky = ky * delta_ky
+    kz = kz * delta_kz
+
+    kxx, kyy, kzz = torch.meshgrid(kx, ky, kz)
+
+    kxx = kxx.unsqueeze(3).repeat(1, 1, 1, n_orientations)
+    kyy = kyy.unsqueeze(3).repeat(1, 1, 1, n_orientations)
+    kzz = kzz.unsqueeze(3).repeat(1, 1, 1, n_orientations)
+
+    k = torch.zeros(MAT_SIZE[0], MAT_SIZE[1], MAT_SIZE[2], n_orientations, 3, dtype=torch.float64, device=DEVICE)
+    k[:, :, :, :, 0] = kxx
+    k[:, :, :, :, 1] = kyy
+    k[:, :, :, :, 2] = kzz
+    k = k.unsqueeze(-1)
+
+    return k, kxx, kyy, kzz
 
 
 def projection_variables(vec_theta, vec_psi, n_orientations):
