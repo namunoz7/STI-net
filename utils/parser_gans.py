@@ -1,0 +1,32 @@
+import argparse
+
+
+def parser_gans():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--kernel_size", type=int, default=3)
+    parser.add_argument("--dataset_root", type=str, default='../Dataset')
+    parser.add_argument("--n_train", type=float, default=0.8)
+    parser.add_argument("--device", type=str, default="/GPU")
+    parser.add_argument("--n_epochs", type=int, default=1000)
+    parser.add_argument("--batch_size", type=int, default=50)
+    parser.add_argument("--kernel_conv", type=tuple, default=(3, 3, 3))
+    parser.add_argument("--lambda_reg", type=float, default=1e-4)
+    parser.add_argument("--lr", type=float, default=0.0001675)
+    parser.add_argument("--alpha_scheduler", type=float, default=0.00005)
+    parser.add_argument("--decay_steps", type=int, default=1000)
+    parser.add_argument("--beta_1", type=float, default=0.7)
+    parser.add_argument("--beta_2", type=float, default=0.99)
+    parser.add_argument("--lr_gen_chi", type=float, default=0.0015)
+    parser.add_argument("--lr_gen_phi", type=float, default=0.0015)
+    parser.add_argument("--lr_disc_chi", type=float, default=0.0005)
+    parser.add_argument("--lr_disc_phi", type=float, default=0.0005)
+    parser.add_argument("--img_size", type=tuple, default=(48, 48, 48, 6,))
+    parser.add_argument("--matrix_size", type=tuple, default=(48, 48, 48, 6, 6))
+    parser.add_argument("--filters", type=int, default=16)
+    parser.add_argument("--slope", type=float, default=0.3)
+    parser.add_argument("--path_ckpt", type=str, default='checkpoints/Tensorflow/')
+    parser.add_argument("--ckpt_name", type=str, default='ckpt_model')
+    parser.add_argument("--logs", type=str, default='logs/train_model')
+    parser.add_argument("--search_logs", type=str, default='logs/search_lr')
+
+    return parser.parse_args()
