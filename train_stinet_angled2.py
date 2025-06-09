@@ -9,12 +9,11 @@ Additionally, the dataset was generated with the corrected eigenvectors of the g
 """
 
 import torch
-import io
 import h5py
 import numpy as np
 import os
 import torch.nn as nn
-import matplotlib.pyplot as plt
+from utils.utils import get_total_phase, add_gauss_noise, check_root, image_grid
 from torch.optim import lr_scheduler
 from Models.Pytorch.STIResNetSplit_angles import STIResNetSplit
 from torch.utils.data import DataLoader, random_split, Dataset
@@ -57,7 +56,7 @@ STD_NOISE = 1e-3
 DEVICE = torch.device('cuda')
 FINE_TUNING = False
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-CHECKPOINT_FOLDER = 'checkpoints/Pytorch/STI_shuffled_corrected/'
+CHECKPOINT_FOLDER = 'checkpoints/Pytorch/STI_new_chi_values/'
 CHECKPOINT_NAME = os.path.join(CHECKPOINT_FOLDER, 'state_dicts_sti.pt')
 
 
@@ -129,54 +128,6 @@ l2_loss = nn.MSELoss(reduction='mean').to(DEVICE)
 lr_scheduler_gen = lr_scheduler.CosineAnnealingLR(optimizer=optimizer_net, T_max=100, eta_min=5e-4)
 
 
-def fft_phase(inputs):
-    """
-    Gets the fourier transform of the input geometric figure images.
-    :param inputs: Input image
-    :return:
-    """
-    fft_input = torch.fft.fftn(input=inputs, dim=(1, 2, 3))
-    fft_input = torch.fft.fftshift(fft_input, dim=(1, 2, 3))
-    return fft_input
-
-
-def inv_fft_phase(fft_input):
-    """
-    Gets the inverse Fourier Transform
-    :param fft_input:
-    :return:
-    """
-    fft_input = torch.fft.ifftshift(fft_input, dim=(1, 2, 3))
-    inputs = torch.fft.ifftn(fft_input, dim=(1, 2, 3))
-    return inputs
-
-
-def get_total_phase(chi, matrix_projection):
-    """
-    Calculates the total phase of the tensor using the linear form of the Tensor model
-    :param matrix_projection:
-    :param chi: Vectorized form of the tensor
-    :return: phase: the local phase of the image
-    """
-    fft_chi = fft_phase(chi)
-    tmp_real = torch.matmul(matrix_projection, torch.real(fft_chi).unsqueeze(-1))
-    tmp_img = torch.matmul(matrix_projection, torch.imag(fft_chi).unsqueeze(-1))
-    tmp_phi = torch.cat((tmp_real, tmp_img), dim=-1)
-    phi = inv_fft_phase(torch.view_as_complex(tmp_phi)).to(DEVICE)
-    return torch.real(phi)
-
-
-def add_gauss_noise(phi, std_noise):
-    """
-    Generates noise in the
-    :param phi: phase image of the tensor
-    :param std_noise: Standard deviation of the gaussian noise
-    :return:
-    """
-    phi += std_noise * torch.rand(phi.size()).to(DEVICE)
-    return phi
-
-
 def identity_loss(real_image, same_image, reg_parameter):
     """
     L2 loss from the difference between the generated STI and the dataset STI
@@ -199,48 +150,6 @@ def cycle_loss(real_image, recovered_image, weight):
     """
     loss = l1_loss(real_image, recovered_image)
     return weight * loss
-
-
-def image_grid(tensor, img, chi_scale):
-    """
-    Returns a 3x3 grid susceptibility images, displaying the susceptibility tensor as a matplotlib figure
-    :param chi_scale:
-    :param img: number of batched image to plot
-    :param tensor: Susceptibility image tensor to be displayed
-    :return: figure
-    """
-    # Create a figure containing the plot
-    tensor2 = tensor.detach().cpu()
-    figure = plt.figure()
-    indexes = [1, 2, 3, 5, 6, 9]
-    titles = [r'$\chi_{11}$', r'$\chi_{12}$', r'$\chi_{13}$', r'$\chi_{22}$', r'$\chi_{23}$', r'$\chi_{33}$']
-    for n in range(0, 6):
-        # Start next subplot
-        plt.subplot(3, 3, indexes[n], title=(titles[n]))
-        plt.xticks([])
-        plt.yticks([])
-        plt.imshow(tensor2[img, :, :, 24, n], cmap='gray', vmin=chi_scale[0], vmax=chi_scale[1])
-    cax = plt.axes([0.9, 0.11, 0.03, 0.77])
-    plt.colorbar(cax=cax)
-    return figure
-
-
-def plot_to_image(figure):
-    """
-    Converts the matplotlib plot specified by 'figure' to an PNG image, and returns it. The supplied figure is closed
-    and inaccessible after this call
-    :param figure: Matplotlib figure to plot in tensorboard
-    :return: image
-    """
-    # Save the plot to a PNG in memory
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    # Closing the figures prevents it from being displayed
-    plt.close(figure)
-    buf.seek(0)
-    # Convert PNG buffer to tf image
-    image = np.frombuffer(buf, dtype=np.uint8)
-    return image
 
 
 def training_step(chi, matrix_projection, direction_field):
@@ -294,21 +203,6 @@ def val_step(chi, matrix_projection, direction_field):
         ani_loss = cycle_loss(real_image=ani_chi, recovered_image=ani_model, weight=ANI_REG)
         loss = iso_loss + ani_loss
     return [iso_loss, ani_loss, loss]
-
-
-def check_root(root_file):
-    """
-    Check if the root file exists. If it does not, it creates the root file
-    :param root_file:
-    :return:
-    """
-    if not os.path.exists(root_file):
-        os.mkdir(root_file)
-        print("Directory " + root_file + " Created ")
-        return False
-    else:
-        print("Directory " + root_file + " already exists")
-        return True
 
 
 def main():
